@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض توقعات الانفجار القادم</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #e9e9e9;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            width: 320px;
+            position: relative;
+        }
+        .explosion {
+            font-size: 36px;
+            margin: 10px 0;
+            color: #F44336;
+        }
+        .prediction {
+            font-size: 24px;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .ai-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #FFEB3B;
+            border-radius: 50%;
+            display: inline-block;
+            margin-top: 10px;
+            animation: spin 3s infinite linear;
+        }
+        .statistics {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>توقع الانفجار القادم</h2>
+        <div class="explosion" id="currentExplosion">جاري التحديث...</div>
+        <div class="prediction" id="prediction">التوقع: ...</div>
+        <div class="ai-icon"></div>
+
+        <!-- إحصائيات إضافية -->
+        <div class="statistics" id="statistics">
+            <p>أعلى انفجار: ...</p>
+            <p>أقل انفجار: ...</p>
+            <p>المتوسط: ...</p>
+        </div>
+    </div>
+
+    <script>
+        const currentExplosion = document.getElementById('currentExplosion');
+        const prediction = document.getElementById('prediction');
+        const statistics = document.getElementById('statistics');
+
+        // البيانات التاريخية للانفجارات (أمثلة)
+        let pastExplosions = [1.2, 1.5, 2.1, 3.0, 4.5, 6.0, 5.2]; 
+
+        function updatePrediction() {
+            // حساب التوقع بناءً على التحليل (نموذج الذكاء الاصطناعي البسيط)
+            const average = pastExplosions.reduce((a, b) => a + b, 0) / pastExplosions.length;
+            const predictedValue = (average + Math.random() * 1.5).toFixed(2); // إضافة تشويش عشوائي
+            prediction.textContent = `التوقع: ${predictedValue}`;
+
+            // تحديث الإحصائيات
+            const highestExplosion = Math.max(...pastExplosions).toFixed(2);
+            const lowestExplosion = Math.min(...pastExplosions).toFixed(2);
+            statistics.innerHTML = `
+                <p>أعلى انفجار: ${highestExplosion}</p>
+                <p>أقل انفجار: ${lowestExplosion}</p>
+                <p>المتوسط: ${(average).toFixed(2)}</p>
+            `;
+        }
+
+        // إنشاء اتصال WebSocket
+        const ws = new WebSocket('wss://eg1xbet.com/games-frame/sockets/crash?appGuid=00000000-0000-0000-0000-000000000000&whence=110&fcountry=66&ref=1&gr=0&lng=ar');
+
+        ws.onopen = () => {
+            console.log('تم الاتصال بنجاح');
+            ws.send('{"protocol":"json","version":1}\x1e');
+            ws.send('{"arguments":[{"activity":30,"currency":119}],"invocationId":"0","target":"Guest","type":1}\x1e');
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data.slice(0, -1));
+                if (data.target === 'OnCrash') {
+                    const newExplosionValue = data.arguments[0].f; // استخراج قيمة الانفجار
+                    currentExplosion.textContent = `الانفجار الحالي: ${newExplosionValue}`;
+                    pastExplosions.push(parseFloat(newExplosionValue)); // إضافة القيمة الجديدة إلى البيانات التاريخية
+                    if (pastExplosions.length > 10) {
+                        pastExplosions.shift(); // الحفاظ على آخر 10 انفجارات فقط
+                    }
+                    updatePrediction(); // تحديث التوقع بناءً على البيانات الجديدة
+                }
+            } catch (error) {
+                console.error('خطأ في معالجة الرسالة:', error);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('تم إغلاق الاتصال');
+        };
+
+        ws.onerror = (error) => {
+            console.error('حدث خطأ في الاتصال:', error);
+        };
+    </script>
+</body>
+</html>
